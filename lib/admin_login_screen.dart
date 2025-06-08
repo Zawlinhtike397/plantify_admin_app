@@ -10,7 +10,7 @@ class AdminLoginScreen extends StatelessWidget {
       body: Center(
         child: ElevatedButton(
           onPressed: () {
-            context.go('/dashboard');
+            context.go('/products');
           },
           child: const Text('Login as Admin'),
         ),

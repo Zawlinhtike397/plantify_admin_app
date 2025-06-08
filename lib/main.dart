@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:plantshop_app_admin/add_plant.dart';
 import 'package:plantshop_app_admin/admin_login_screen.dart';
 import 'package:plantshop_app_admin/dashboard.dart';
+import 'package:plantshop_app_admin/products.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,6 +18,16 @@ final GoRouter _router = GoRouter(routes: [
   GoRoute(
     path: '/dashboard',
     builder: (context, state) => const Dashboard(),
+  ),
+  GoRoute(
+    path: '/products',
+    builder: (context, state) => const Products(),
+    routes: [
+      GoRoute(
+        path: 'add-product',
+        builder: (context, state) => const AddPlant(),
+      )
+    ],
   )
 ]);
 
