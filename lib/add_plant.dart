@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AddPlant extends StatefulWidget {
@@ -14,16 +13,61 @@ class AddPlant extends StatefulWidget {
 
 class _AddPlantState extends State<AddPlant> {
   final ImagePicker _picker = ImagePicker();
-  File? _selectedImage;
+  List<File> _selectedImages = [];
+  int? _activeImageIndex;
 
-  Future _pickImage() async {
-    final image = await _picker.pickImage(source: ImageSource.gallery);
+  // File? _selectedImage;
 
-    if (image == null) return;
+  Future _pickImages() async {
+    final images = await _picker.pickMultiImage(
+      maxHeight: 350,
+      requestFullMetadata: false,
+    );
+
+    if (images.isEmpty) return;
+
     setState(() {
-      _selectedImage = File(image!.path);
+      _selectedImages = images.map((img) => File(img.path)).toList();
     });
   }
+
+  Future<void> _replaceImage(int index) async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxHeight: 350,
+      requestFullMetadata: false,
+    );
+    if (pickedFile == null) return;
+
+    setState(() {
+      _selectedImages[index] = File(pickedFile.path);
+      _activeImageIndex = null; // Hide buttons after replace
+    });
+  }
+
+  void _viewImage(File file) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: InteractiveViewer(
+          child: Image.file(file),
+        ),
+      ),
+    );
+  }
+
+  // Future _pickImage() async {
+  //   final image = await _picker.pickImage(
+  //     requestFullMetadata: false,
+  //     source: ImageSource.gallery,
+  //     maxHeight: 250,
+  //   );
+
+  //   if (image == null) return;
+  //   setState(() {
+  //     _selectedImage = File(image!.path);
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -48,12 +92,6 @@ class _AddPlantState extends State<AddPlant> {
               ),
               child: Column(
                 children: [
-                  Text(
-                    'Please fill below form  to add a new plant.',
-                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          fontSize: 16,
-                        ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0, bottom: 10.0),
                     child: Container(
@@ -66,7 +104,7 @@ class _AddPlantState extends State<AddPlant> {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0,
+                          horizontal: 12.0,
                         ),
                         child: Form(
                           child: Column(
@@ -347,7 +385,6 @@ class _AddPlantState extends State<AddPlant> {
                                     ),
                                     const SizedBox(height: 8),
                                     TextFormField(
-                                      // controller: _confirmPasswordController,
                                       decoration: InputDecoration(
                                         hintText: 'Enter pot for plant',
                                         hintStyle: Theme.of(context)
@@ -391,7 +428,7 @@ class _AddPlantState extends State<AddPlant> {
                                     ),
                                     const SizedBox(height: 8),
                                     InkWell(
-                                      onTap: _pickImage,
+                                      onTap: _pickImages,
                                       child: SizedBox(
                                         width: MediaQuery.sizeOf(context)
                                                     .width >
@@ -404,32 +441,185 @@ class _AddPlantState extends State<AddPlant> {
                                           dashPattern: const [4, 4],
                                           color: Colors.grey,
                                           radius: const Radius.circular(5.0),
-                                          child: SizedBox(
-                                            height: 100.0,
-                                            width: 150.0,
-                                            child: Column(
-                                              children: [
-                                                const SizedBox(height: 10.0),
-                                                _selectedImage != null
-                                                    ? Image.file(
-                                                        _selectedImage!)
-                                                    : const Icon(
-                                                        Icons
-                                                            .add_photo_alternate_outlined,
-                                                        size: 60.0,
-                                                        color: Colors.grey,
-                                                      ),
-                                                Text(
-                                                  'Click here to add plant images.',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall!
-                                                      .copyWith(
-                                                          fontSize: 13.0,
-                                                          color: Colors.grey),
-                                                ),
-                                              ],
-                                            ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const SizedBox(height: 10.0),
+                                              _selectedImages.isNotEmpty
+                                                  ? Wrap(
+                                                      spacing: 8.0,
+                                                      runSpacing: 10.0,
+                                                      children: _selectedImages
+                                                          .asMap()
+                                                          .entries
+                                                          .map((entry) {
+                                                        final index = entry.key;
+                                                        final file =
+                                                            entry.value;
+
+                                                        return GestureDetector(
+                                                          onTap: () {
+                                                            setState(() {
+                                                              if (_activeImageIndex ==
+                                                                  index) {
+                                                                _activeImageIndex =
+                                                                    null;
+                                                              } else {
+                                                                _activeImageIndex =
+                                                                    index;
+                                                              }
+                                                            });
+                                                          },
+                                                          child: Stack(
+                                                            clipBehavior:
+                                                                Clip.none,
+                                                            children: [
+                                                              Image.file(file),
+                                                              Positioned(
+                                                                top: -13,
+                                                                right: -4,
+                                                                child:
+                                                                    Container(
+                                                                  width: 35.0,
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: Theme.of(
+                                                                            context)
+                                                                        .colorScheme
+                                                                        .secondary,
+                                                                    shape: BoxShape
+                                                                        .circle,
+                                                                  ),
+                                                                  child:
+                                                                      IconButton(
+                                                                    iconSize:
+                                                                        15.0,
+                                                                    color: Colors
+                                                                        .white,
+                                                                    onPressed:
+                                                                        () {
+                                                                      setState(
+                                                                          () {
+                                                                        _selectedImages
+                                                                            .removeAt(index);
+                                                                        if (_activeImageIndex ==
+                                                                            index) {
+                                                                          _activeImageIndex =
+                                                                              null;
+                                                                        }
+                                                                      });
+                                                                    },
+                                                                    icon: const Icon(
+                                                                        Icons
+                                                                            .close),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              if (_activeImageIndex ==
+                                                                  index)
+                                                                Positioned.fill(
+                                                                  child:
+                                                                      Container(
+                                                                    padding:
+                                                                        const EdgeInsets
+                                                                            .all(
+                                                                            8.0),
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      color: Colors
+                                                                          .black
+                                                                          .withOpacity(
+                                                                              0.5), // Semi-transparent dark bg
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              12),
+                                                                    ),
+                                                                    child:
+                                                                        Column(
+                                                                      crossAxisAlignment:
+                                                                          CrossAxisAlignment
+                                                                              .center,
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .center,
+                                                                      children: [
+                                                                        ElevatedButton(
+                                                                          style:
+                                                                              ElevatedButton.styleFrom(
+                                                                            backgroundColor:
+                                                                                Colors.white,
+                                                                            foregroundColor:
+                                                                                Colors.black,
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                                            shape:
+                                                                                RoundedRectangleBorder(
+                                                                              borderRadius: BorderRadius.circular(8),
+                                                                            ),
+                                                                          ),
+                                                                          onPressed: () =>
+                                                                              _replaceImage(index),
+                                                                          child:
+                                                                              const Text('Replace'),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                            height:
+                                                                                8),
+                                                                        TextButton(
+                                                                          style:
+                                                                              TextButton.styleFrom(
+                                                                            backgroundColor:
+                                                                                Colors.white,
+                                                                            foregroundColor:
+                                                                                Colors.black,
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                                            shape:
+                                                                                RoundedRectangleBorder(
+                                                                              borderRadius: BorderRadius.circular(8),
+                                                                            ),
+                                                                          ),
+                                                                          onPressed: () =>
+                                                                              _viewImage(file),
+                                                                          child:
+                                                                              const Text('View'),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    )
+                                                  : Column(
+                                                      children: [
+                                                        const Icon(
+                                                          Icons
+                                                              .add_photo_alternate_outlined,
+                                                          size: 60.0,
+                                                          color: Colors.grey,
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 10.0,
+                                                        ),
+                                                        Text(
+                                                          'Click here to add plant images.',
+                                                          style: Theme.of(
+                                                                  context)
+                                                              .textTheme
+                                                              .bodySmall!
+                                                              .copyWith(
+                                                                  fontSize:
+                                                                      13.0,
+                                                                  color: Colors
+                                                                      .grey),
+                                                        ),
+                                                      ],
+                                                    ),
+                                              const SizedBox(height: 10.0),
+                                            ],
                                           ),
                                         ),
                                       ),
