@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,19 +9,17 @@ class AddPlant extends StatefulWidget {
   const AddPlant({super.key});
 
   @override
-  State<AddPlant> createState() => _AddPlantState();
+  State<AddPlant> createState() => AddPlantState();
 }
 
-class _AddPlantState extends State<AddPlant> {
+class AddPlantState extends State<AddPlant> {
   final ImagePicker _picker = ImagePicker();
   List<File> _selectedImages = [];
   int? _activeImageIndex;
-
-  // File? _selectedImage;
+  final db = FirebaseFirestore.instance;
 
   Future _pickImages() async {
     final images = await _picker.pickMultiImage(
-      maxHeight: 350,
       requestFullMetadata: false,
     );
 
@@ -41,33 +40,39 @@ class _AddPlantState extends State<AddPlant> {
 
     setState(() {
       _selectedImages[index] = File(pickedFile.path);
-      _activeImageIndex = null; // Hide buttons after replace
+      _activeImageIndex = null;
     });
   }
 
   void _viewImage(File file) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        child: InteractiveViewer(
-          child: Image.file(file),
-        ),
-      ),
+    final imageProvider = Image.file(file).image;
+
+    imageProvider.resolve(const ImageConfiguration()).addListener(
+      ImageStreamListener((ImageInfo info, bool _) {
+        if (!mounted) return;
+
+        final width = info.image.width.toDouble();
+        final height = info.image.height.toDouble();
+        final aspectRatio = width / height;
+
+        showDialog(
+          context: context,
+          builder: (_) => Dialog(
+            insetPadding: const EdgeInsets.all(16),
+            child: AspectRatio(
+              aspectRatio: aspectRatio,
+              child: InteractiveViewer(
+                child: Image.file(
+                  file,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
-
-  // Future _pickImage() async {
-  //   final image = await _picker.pickImage(
-  //     requestFullMetadata: false,
-  //     source: ImageSource.gallery,
-  //     maxHeight: 250,
-  //   );
-
-  //   if (image == null) return;
-  //   setState(() {
-  //     _selectedImage = File(image!.path);
-  //   });
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -429,7 +434,10 @@ class _AddPlantState extends State<AddPlant> {
                                     const SizedBox(height: 8),
                                     InkWell(
                                       onTap: _pickImages,
-                                      child: SizedBox(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[100],
+                                        ),
                                         width: MediaQuery.sizeOf(context)
                                                     .width >
                                                 600
@@ -529,10 +537,7 @@ class _AddPlantState extends State<AddPlant> {
                                                                       color: Colors
                                                                           .black
                                                                           .withOpacity(
-                                                                              0.5), // Semi-transparent dark bg
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              12),
+                                                                              0.5),
                                                                     ),
                                                                     child:
                                                                         Column(
